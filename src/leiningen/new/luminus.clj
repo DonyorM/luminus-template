@@ -6,6 +6,8 @@
             [leiningen.core.main :refer [leiningen-version]]
             [leiningen.core.main :as main]
             [leiningen.new.common :refer :all]
+            [leiningen.new.lein :refer [lein-features]]
+            [leiningen.new.boot :refer [boot-features]]
             [leiningen.new.auth :refer [auth-features]]
             [leiningen.new.auth-base :refer [auth-base-features]]
             [leiningen.new.auth-jwe :refer [auth-jwe-features]]
@@ -34,7 +36,6 @@
 
 (def core-assets
   [[".gitignore" "core/gitignore"]
-   ["project.clj" "core/project.clj"]
    ["profiles.clj" "core/profiles.clj"]
    ["Procfile" "core/Procfile"]
    ["Dockerfile" "core/Dockerfile"]
@@ -108,7 +109,7 @@
    ['org.clojure/tools.logging "0.4.0"]
    ['compojure "1.6.0"]
    ['ring/ring-core "1.6.1"]
-   ['ring-webjars "0.2.0"]
+   ['ring-webjars "0.2.0" :exclusions ['org.webjars/webjars-locator-core]]
    ['ring/ring-defaults "0.3.0"]
    ['luminus/ring-ttl-session "0.3.2"]
    ['mount "0.1.11"]
@@ -122,6 +123,8 @@
   (main/info "Generating a Luminus project.")
   (let [[assets options]
         (-> [core-assets options]
+            lein-features
+            boot-features
             service-features
             auth-base-features
             auth-features
@@ -160,7 +163,8 @@
 (defn set-default-features [options]
   (-> options
       (set-feature "+immutant" #{"+jetty" "+aleph" "+http-kit"})
-      (set-feature "+logback" #{})))
+      (set-feature "+logback" #{})
+      (set-feature "+lein" #{"+boot"})))
 
 (defn set-feature-dependency [options feature dependencies]
   (let [features (-> options :features set)]
@@ -200,7 +204,8 @@
                              "+cljs" "+hoplon" "+reagent" "+re-frame" "+auth" "+auth-jwe" "+site"
                              "+cucumber" "+sassc" "+cider" "+oauth"
                              "+swagger" "+war"
-                             "+kibit" "+service"}
+                             "+kibit" "+service"
+                             "+boot"}
         options {:name              (project-name name)
                  :dependencies      core-dependencies
                  :selmer-renderer   render-template
