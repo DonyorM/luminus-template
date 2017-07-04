@@ -1,3 +1,22 @@
+## 2.9.11.67
+
+- ClojureScript 1.9.671
+
+## 2.9.11.66
+
+fixed typo
+
+## 2.9.11.64
+
+- ClojureScript 1.9.660
+- Reagent 0.7.0
+
+## 2.9.11.63
+
+- updated to only include org.webjars/webjars-locator-jboss-vfs when using `+war` flag
+- metosin/muuntaja 0.3.1
+- com.cemerick/piggieback 0.2.2
+
 ## 2.9.11.61
 
 - org.clojure/tools.logging 0.4.0

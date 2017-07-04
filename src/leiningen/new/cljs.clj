@@ -13,7 +13,7 @@
    ["resources/templates/home.html" "cljs/templates/home.html"]
    ["resources/templates/error.html" "core/resources/templates/error.html"]])
 
-(def cljs-version "1.9.562")
+(def cljs-version "1.9.671")
 
 (def figwheel-version "0.5.10")
 
@@ -42,7 +42,7 @@
   [['doo "0.1.7"]
    ['binaryage/devtools "0.9.4"]
    ['figwheel-sidecar figwheel-version]
-   ['com.cemerick/piggieback "0.2.2-SNAPSHOT"]])
+   ['com.cemerick/piggieback "0.2.2"]])
 
 (defn uberjar-cljsbuild [features]
   {:builds
