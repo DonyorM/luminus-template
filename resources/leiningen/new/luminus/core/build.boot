@@ -1,13 +1,22 @@
+<% if cljs %>
+(let [target-cljsbuild (java.io.File. "target/cljsbuild")]
+  (if (not (.exists target-cljsbuild))
+    (.mkdirs target-cljsbuild)))
+<% endif %>
+
 (set-env!
  :dependencies '[<<dependencies>>]<% if resource-paths %>
  :source-paths <<source-paths>>
  :resource-paths <<resource-paths>><% endif %>)
-
+<% if cljs %>
+(require '[adzerk.boot-cljs :refer [cljs]]
+         '[adzerk.boot-cljs-repl :refer [cljs-repl]])
+<% endif %>
 (deftask dev
   "Enables configuration for a development setup."
   []
   (set-env!
-   :source-paths #(conj % "env/dev/clj")
+   :source-paths #(conj % "env/dev/clj"<% if cljs %> <<dev-cljs.source-paths>> <% endif %>)
    :resource-paths #(conj % "env/dev/resources")
    :dependencies #(concat % '[[prone "1.1.4"]
                               [ring/ring-mock "0.3.0"]
@@ -21,14 +30,47 @@
     (pja))
   identity)
 
-(deftask testing []
+(deftask testing
   "Enables configuration for testing."
+  []
   (dev)
   (set-env! :resource-paths #(conj % "env/test/resources"))
   identity)
 
-(deftask run []
+(deftask run
+  "Runs the project without building class files."
+  []
   (require '<<project-ns>>.core)
   (let [m (resolve '<<project-ns>>.core/-main)]
     (with-pass-thru _
       (m))))
+
+(deftask build
+  "Builds an uberjar of this project that can be run with java -jar"
+  []
+  (set-env!
+   :source-paths #(conj % "env/prod/clj")
+   :resource-paths #(conj % "env/prod/resources"))
+  (comp
+   (aot :namespace #{'<<project-ns>>.core})
+   (uber)
+   (jar :file "<<name>>.jar" :main '<<project-ns>>.core)
+   (sift :include #{#"<<name>>.jar"})
+   (target)))
+<% if cljs %>
+
+(require '[clojure.java.io :as io])
+(deftask figwheel
+  "Runs figwheel and enables reloading."
+  []
+  (dev)
+  (require '[powerlaces.boot-figreload :refer [reload]]
+           '[pandeiro.boot-http :refer [serve]])
+  (let [reload (resolve 'powerlaces.boot-figreload/reload)
+        serve (resolve 'pandeiro.boot-http/serve)]
+    (comp
+     (serve)
+     (watch)
+     (reload :client-opts {:debug true})
+     (cljs-repl)
+     (cljs <<dev-cljs.compiler>>))))<% endif %>

@@ -1,5 +1,6 @@
 (ns leiningen.new.cljs
-  (:require [leiningen.new.common :refer :all]))
+  (:require [leiningen.new.common :refer :all]
+            [clojure.string :refer [join]]))
 
 (def cljs-assets
   [["src/cljs/{{sanitized}}/core.cljs" "cljs/src/cljs/core.cljs"]
@@ -92,26 +93,61 @@
      :nrepl-middleware `[cemerick.piggieback/wrap-cljs-repl
                          ~@(when cider? ['cider.nrepl/cider-middleware])]}))
 
+(defn cljs-lein-features [[assets options :as state]]
+  [assets
+   (assoc options
+          :dev-cljsbuild (indent dev-indent (dev-cljsbuild options))
+          :test-cljsbuild (indent dev-indent (test-cljsbuild options))
+          :uberjar-cljsbuild (indent uberjar-indent (uberjar-cljsbuild (:features options)))
+          :cljs-test cljs-test
+          :figwheel (indent root-indent (figwheel options))
+          :cljs-uberjar-prep ":prep-tasks [\"compile\" [\"cljsbuild\" \"once\" \"min\"]]")])
+
+;; Options for boot
+
+(def cljs-boot-plugins '[[adzerk/boot-cljs "2.1.0-SNAPSHOT" :scope "test"]
+                         [adzerk/boot-cljs-repl "0.3.3" :scope "test"]])
+
+(def cljs-boot-dev-plugins
+  '[[crisptrutski/boot-cljs-test "0.3.2-SNAPSHOT" :scope "test"]
+    [powerlaces/boot-figreload "0.1.1-SNAPSHOT" :scope "test"]
+    [org.clojure/clojurescript cljs-version :scope "test"]
+    [pandeiro/boot-http "0.7.6" :scope "test"]
+    [weasel "0.7.0" :scope "test"]
+    [org.clojure/tools.nrepl "0.2.12" :scope "test"]])
+
+(defn dev-cljs [options]
+  (let [lein-map (dev-cljsbuild options)]
+    {:source-paths (join " " (map #(str "\"" % "\"")
+                                  (get-in lein-map [:builds :app :source-paths])))
+     :figwheel (get-in lein-map [:builds :app :figwheel])
+     :compiler (get-in lein-map [:builds :app :compiler])}))
+
+(defn cljs-boot-features [[assets options :as state]]
+  [assets
+   (-> options
+       (append-options :dependencies cljs-boot-plugins)
+       (append-options :dev-dependencies cljs-boot-dev-plugins)
+       (assoc :dev-cljs (dev-cljs options)))])
+
 (defn cljs-features [[assets options :as state]]
   (if (some #{"+cljs"} (:features options))
-    [(into (remove-conflicting-assets assets ".html") cljs-assets)
-     (-> options
-         (update :dependencies
-                 #(remove (fn [[artifact]]
-                            (= artifact 'org.webjars/jquery)) %))
-         (append-options :dependencies cljs-dependencies)
-         (append-options :plugins cljs-plugins)
-         (append-options :source-paths source-paths)
-         (append-options :resource-paths resource-paths)
-         (append-options :dev-dependencies cljs-dev-dependencies)
-         (append-options :dev-plugins cljs-dev-plugins)
-         (update-in [:clean-targets] (fnil into []) clean-targets)
-         (assoc
-           :cljs true
-           :dev-cljsbuild (indent dev-indent (dev-cljsbuild options))
-           :test-cljsbuild (indent dev-indent (test-cljsbuild options))
-           :uberjar-cljsbuild (indent uberjar-indent (uberjar-cljsbuild (:features options)))
-           :cljs-test cljs-test
-           :figwheel (indent root-indent (figwheel options))
-           :cljs-uberjar-prep ":prep-tasks [\"compile\" [\"cljsbuild\" \"once\" \"min\"]]"))]
-    state))
+    (let [updated-state
+          [(into (remove-conflicting-assets assets ".html") cljs-assets)
+           (-> options
+               (update :dependencies
+                       #(remove (fn [[artifact]]
+                                  (= artifact 'org.webjars/jquery)) %))
+               (append-options :dependencies cljs-dependencies)
+               (append-options :plugins cljs-plugins)
+               (append-options :source-paths source-paths)
+               (append-options :resource-paths resource-paths)
+               (append-options :dev-dependencies cljs-dev-dependencies)
+               (append-options :dev-plugins cljs-dev-plugins)
+               (update-in [:clean-targets] (fnil into []) clean-targets)
+               (assoc :cljs true))]
+           boot? (some #{"+boot"} (:features options))]
+      (if boot?
+        (cljs-boot-features updated-state)
+        (cljs-lein-features updated-state)))
+      state))
