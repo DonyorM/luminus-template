@@ -13,6 +13,9 @@
    ["resources/templates/home.html" "cljs/templates/home.html"]
    ["resources/templates/error.html" "core/resources/templates/error.html"]])
 
+(def boot-cljs-assets
+  [["src/app.cljs.edn" "cljs/src/app.cljs.edn"]])
+
 (def cljs-version "1.9.671")
 
 (def figwheel-version "0.5.10")
@@ -95,22 +98,25 @@
 
 (defn cljs-lein-features [[assets options :as state]]
   [assets
-   (assoc options
-          :dev-cljsbuild (indent dev-indent (dev-cljsbuild options))
-          :test-cljsbuild (indent dev-indent (test-cljsbuild options))
-          :uberjar-cljsbuild (indent uberjar-indent (uberjar-cljsbuild (:features options)))
-          :cljs-test cljs-test
-          :figwheel (indent root-indent (figwheel options))
-          :cljs-uberjar-prep ":prep-tasks [\"compile\" [\"cljsbuild\" \"once\" \"min\"]]")])
+   (-> options
+       (assoc
+        :dev-cljsbuild (indent dev-indent (dev-cljsbuild options))
+        :test-cljsbuild (indent dev-indent (test-cljsbuild options))
+        :uberjar-cljsbuild (indent uberjar-indent (uberjar-cljsbuild (:features options)))
+        :cljs-test cljs-test
+        :figwheel (indent root-indent (figwheel options))
+        :cljs-uberjar-prep ":prep-tasks [\"compile\" [\"cljsbuild\" \"once\" \"min\"]]")
+       (append-options :resource-paths resource-paths))])
 
 ;; Options for boot
 
 (def cljs-boot-plugins '[[adzerk/boot-cljs "2.1.0-SNAPSHOT" :scope "test"]
+                         [crisptrutski/boot-cljs-test "0.3.2-SNAPSHOT" :scope "test"]
                          [adzerk/boot-cljs-repl "0.3.3" :scope "test"]])
 
 (def cljs-boot-dev-plugins
   '[[crisptrutski/boot-cljs-test "0.3.2-SNAPSHOT" :scope "test"]
-    [powerlaces/boot-figreload "0.1.1-SNAPSHOT" :scope "test"]
+    [adzerk/boot-reload "0.5.1" :scope "test"]
     [org.clojure/clojurescript cljs-version :scope "test"]
     [pandeiro/boot-http "0.7.6" :scope "test"]
     [weasel "0.7.0" :scope "test"]
@@ -124,7 +130,7 @@
      :compiler (get-in lein-map [:builds :app :compiler])}))
 
 (defn cljs-boot-features [[assets options :as state]]
-  [assets
+  [(into assets boot-cljs-assets)
    (-> options
        (append-options :dependencies cljs-boot-plugins)
        (append-options :dev-dependencies cljs-boot-dev-plugins)
@@ -141,7 +147,6 @@
                (append-options :dependencies cljs-dependencies)
                (append-options :plugins cljs-plugins)
                (append-options :source-paths source-paths)
-               (append-options :resource-paths resource-paths)
                (append-options :dev-dependencies cljs-dev-dependencies)
                (append-options :dev-plugins cljs-dev-plugins)
                (update-in [:clean-targets] (fnil into []) clean-targets)

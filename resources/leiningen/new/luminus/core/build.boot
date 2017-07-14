@@ -1,9 +1,3 @@
-<% if cljs %>
-(let [target-cljsbuild (java.io.File. "target/cljsbuild")]
-  (if (not (.exists target-cljsbuild))
-    (.mkdirs target-cljsbuild)))
-<% endif %>
-
 (set-env!
  :dependencies '[<<dependencies>>]<% if resource-paths %>
  :source-paths <<source-paths>>
@@ -11,6 +5,8 @@
 <% if cljs %>
 (require '[adzerk.boot-cljs :refer [cljs]]
          '[adzerk.boot-cljs-repl :refer [cljs-repl]])
+<% endif %><% if sassc-config-params %>
+(require '[deraen.boot-sass :refer [sass]])
 <% endif %>
 (deftask dev
   "Enables configuration for a development setup."
@@ -20,7 +16,7 @@
    :resource-paths #(conj % "env/dev/resources")
    :dependencies #(concat % '[[prone "1.1.4"]
                               [ring/ring-mock "0.3.0"]
-                              [ring/ring-devel "1.6.1"]<%if war %>
+                              [ring/ring-devel "1.6.1"]<% if war %>
                               <<dev-http-server-dependencies>><% endif %>
                               [pjstadig/humane-test-output "0.8.2"]<% if dev-dependencies %>
                               <<dev-dependencies>><% endif %>]))
@@ -34,7 +30,8 @@
   "Enables configuration for testing."
   []
   (dev)
-  (set-env! :resource-paths #(conj % "env/test/resources"))
+  (set-env! :resource-paths #(conj % "env/test/resources"))<% if cljs %>
+  (merge-env! :source-paths <<test-cljsbuild.builds.test.source-paths>>)<% endif %>
   identity)
 
 (deftask run
@@ -57,20 +54,37 @@
    (jar :file "<<name>>.jar" :main '<<project-ns>>.core)
    (sift :include #{#"<<name>>.jar"})
    (target)))
-<% if cljs %>
+<% if war %>
+(require '[boot.immutant :refer [gird]])
+(deftask uberwar
+  "Creates a war file ready to deploy to wildfly."
+  []
+  (comp
+   (uber :as-jars true)
+   (aot :all true)
+   (gird :init-fn '<<project-ns>>.handler/init)
+   (war)
+   (target)))
 
+(deftask dev-war
+  "Creates a war file for development and testing."
+  []
+  (comp
+   (dev)
+   (gird :dev true :init-fn '<<project-ns>>.handler/init)
+   (war)
+   (target)))
+<% endif %><% if cljs %>
 (require '[clojure.java.io :as io])
+(require '[crisptrutski.boot-cljs-test :refer [test-cljs]])
 (deftask figwheel
   "Runs figwheel and enables reloading."
   []
   (dev)
-  (require '[powerlaces.boot-figreload :refer [reload]]
-           '[pandeiro.boot-http :refer [serve]])
-  (let [reload (resolve 'powerlaces.boot-figreload/reload)
-        serve (resolve 'pandeiro.boot-http/serve)]
+  (require '[powerlaces.boot-figreload :refer [reload]])
+  (let [reload (resolve 'adzerk.boot-reload/reload)]
     (comp
-     (serve)
-     (watch)
-     (reload :client-opts {:debug true})
+     (reload {:client-opts {:debug true}})
      (cljs-repl)
-     (cljs <<dev-cljs.compiler>>))))<% endif %>
+     (cljs))))
+<% endif %>
