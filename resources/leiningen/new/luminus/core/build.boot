@@ -82,9 +82,10 @@
   []
   (dev)
   (require '[powerlaces.boot-figreload :refer [reload]])
-  (let [reload (resolve 'adzerk.boot-reload/reload)]
+  (let [reload (resolve 'powerlaces.boot-figreload/reload)]
     (comp
      (reload {:client-opts {:debug true}})
      (cljs-repl)
-     (cljs))))
+     (cljs)
+     (run))))
 <% endif %>

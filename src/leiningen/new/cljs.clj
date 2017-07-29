@@ -13,9 +13,6 @@
    ["resources/templates/home.html" "cljs/templates/home.html"]
    ["resources/templates/error.html" "core/resources/templates/error.html"]])
 
-(def boot-cljs-assets
-  [["src/app.cljs.edn" "cljs/src/app.cljs.edn"]])
-
 (def cljs-version "1.9.671")
 
 (def figwheel-version "0.5.10")
@@ -110,13 +107,16 @@
 
 ;; Options for boot
 
+(def boot-cljs-assets
+  [["src/cljs/app.cljs.edn" "cljs/src/cljs/app.cljs.edn"]])
+
 (def cljs-boot-plugins '[[adzerk/boot-cljs "2.1.0-SNAPSHOT" :scope "test"]
                          [crisptrutski/boot-cljs-test "0.3.2-SNAPSHOT" :scope "test"]
                          [adzerk/boot-cljs-repl "0.3.3" :scope "test"]])
 
 (def cljs-boot-dev-plugins
   '[[crisptrutski/boot-cljs-test "0.3.2-SNAPSHOT" :scope "test"]
-    [adzerk/boot-reload "0.5.1" :scope "test"]
+    [powerlaces/boot-figreload "0.1.1-SNAPSHOT" :scope "test"]
     [org.clojure/clojurescript cljs-version :scope "test"]
     [pandeiro/boot-http "0.7.6" :scope "test"]
     [weasel "0.7.0" :scope "test"]

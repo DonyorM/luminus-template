@@ -109,7 +109,7 @@
    ['org.clojure/tools.logging "0.4.0"]
    ['compojure "1.6.0"]
    ['ring/ring-core "1.6.1"]
-   ['ring-webjars "0.2.0" :exclusions ['org.webjars/webjars-locator-core]]
+   ['ring-webjars "0.2.0"]
    ['ring/ring-defaults "0.3.0"]
    ['luminus/ring-ttl-session "0.3.2"]
    ['mount "0.1.11"]
